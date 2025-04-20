@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en"> 
+ <head> 
+  <meta charset="UTF-8"> 
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+  <title>Human Coin Escrow</title> 
+  <link rel="stylesheet" href="style.css"> 
+ </head> 
+ <body> 
+  <div class="container"> 
+   <img src="logo.png" alt="Human Coin Escrow Logo" class="logo"> 
+   <h1>Human Coin Escrow</h1> 
+   <div class="balance"> 
+    <p><strong>Depositor:</strong> <span id="depositorBalance">100</span> HUC</p> 
+    <p><strong>Escrow:</strong> <span id="escrowBalance">0</span> HUC</p> 
+    <p><strong>Receiver:</strong> <span id="receiverBalance">0</span> HUC</p> 
+   </div> <label for="paymentMethod">Select Payment Method:</label> <select id="paymentMethod"> <option value="">-- Select --</option> <option value="mpesa">M-Pesa</option> <option value="binance">Binance</option> </select> 
+   <div id="mpesaInput" class="hidden"> <label for="mpesaNumber">M-Pesa Number:</label> 
+    <input type="text" id="mpesaNumber" placeholder="e.g. 0712345678"> 
+   </div> 
+   <div id="binanceInput" class="hidden"> <label for="binanceUID">Binance UID:</label> 
+    <input type="text" id="binanceUID" placeholder="e.g. 123456789"> 
+   </div> <label for="amount">Amount to Deposit (min 100 HUC):</label> 
+   <input type="number" id="amount" min="100" placeholder="e.g. 100"> 
+   <p id="convertedAmount"></p> 
+   <div class="deposit-instructions"> 
+    <p>Make payment to the address below:</p> 
+    <div class="address-box"> <span id="walletAddress">hwt1e3anyng3k5sucu2pyrhn37qnu4640a9glkdtns</span> <button onclick="copyAddress()">Copy</button> 
+    </div> 
+   </div> <button onclick="deposit()">Deposit</button> <button onclick="release()">Release to Receiver</button> <button onclick="refund()">Refund to Depositor</button> 
+   <div id="screenshotSection" class="hidden"> 
+    <h3>Upload Payment Screenshot:</h3> 
+    <input type="file" id="screenshotInput" accept="image/*"> 
+    <div id="screenshotPreview"></div> 
+   </div> 
+   <p id="status"></p> 
+  </div> 
+  <script>
+    let depositorBalance = 100;
+    let escrowBalance = 0;
+    let receiverBalance = 0;
+
+    const depositorDisplay = document.getElementById("depositorBalance");
+    const escrowDisplay = document.getElementById("escrowBalance");
+    const receiverDisplay = document.getElementById("receiverBalance");
+    const convertedAmount = document.getElementById("convertedAmount");
+
+    const paymentMethod = document.getElementById("paymentMethod");
+    const amountInput = document.getElementById("amount");
+
+    function updateBalances() {
+      depositorDisplay.textContent = depositorBalance;
+      escrowDisplay.textContent = escrowBalance;
+      receiverDisplay.textContent = receiverBalance;
+    }
+
+    function handlePaymentMethodChange() {
+      const method = paymentMethod.value;
+      document.getElementById("mpesaInput").classList.add("hidden");
+      document.getElementById("binanceInput").classList.add("hidden");
+
+      if (method === "mpesa") {
+        document.getElementById("mpesaInput").classList.remove("hidden");
+      } else if (method === "binance") {
+        document.getElementById("binanceInput").classList.remove("hidden");
+      }
+
+      updateConvertedDisplay();
+    }
+
+    function updateConvertedDisplay() {
+      const amount = parseFloat(amountInput.value);
+      const method = paymentMethod.value;
+
+      if (!amount || amount < 100) {
+        convertedAmount.textContent = "";
+        return;
+      }
+
+      if (method === "mpesa") {
+        convertedAmount.textContent = `Approx. KES ${(amount * 3).toFixed(2)}`;
+      } else if (method === "binance") {
+        convertedAmount.textContent = `Approx. $${(amount * 0.02).toFixed(2)} USD`;
+      } else {
+        convertedAmount.textContent = "";
+      }
+    }
+
+    function copyAddress() {
+      const address = document.getElementById("walletAddress").textContent;
+      navigator.clipboard.writeText(address);
+      alert("Address copied to clipboard!");
+    }
+
+    function deposit() {
+      const amount = parseInt(amountInput.value);
+      if (!amount || amount < 100) {
+        document.getElementById("status").textContent = "Amount must be at least 100 HUC.";
+        return;
+      }
+
+      if (depositorBalance >= amount) {
+        depositorBalance -= amount;
+        escrowBalance += amount;
+        updateBalances();
+        document.getElementById("status").textContent = "Deposit successful. Please upload payment screenshot.";
+        document.getElementById("screenshotSection").classList.remove("hidden");
+      } else {
+        document.getElementById("status").textContent = "Insufficient depositor balance.";
+      }
+    }
+
+    function release() {
+      receiverBalance += escrowBalance;
+      escrowBalance = 0;
+      updateBalances();
+      document.getElementById("status").textContent = "Funds released to receiver.";
+    }
+
+    function refund() {
+      depositorBalance += escrowBalance;
+      escrowBalance = 0;
+      updateBalances();
+      document.getElementById("status").textContent = "Funds refunded to depositor.";
+    }
+
+    paymentMethod.addEventListener("change", handlePaymentMethodChange);
+    amountInput.addEventListener("input", updateConvertedDisplay);
+
+    document.getElementById("screenshotInput").addEventListener("change", function (e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          document.getElementById("screenshotPreview").innerHTML = `<img src="${event.target.result}" alt="Screenshot" />`;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    updateBalances();
+  </script> 
+ </body>
+</html>
